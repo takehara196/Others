@@ -1,0 +1,27 @@
+@charset "UTF-8";
+html {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  height: 100%;
+  font-size: 62.5%;
+}
+
+body {
+  font-family: "ヒラギノ角ゴ Std W8", "Hiragino Kaku Gothic Std", "メイリオ", "Meiryo", "ＭＳ ゴシック", sans-serif;
+  font-size: 12px;
+  font-size: 1.2rem;
+  line-height: 1.5;
+  font-weight: 500;
+  color: #20204b;
+  background-color: #bbbbbb;
+}
+.base_container{
+  margin: 0 auto;
+  background-color: #f0f7ff;
+  width: 600px;
+  min-height: 400px;
+  padding: 10px;
+}
