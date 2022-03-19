@@ -91,7 +91,7 @@ def main():
     cluster_df = tmp_df.copy()
     cluster_df['cluster'] = cluster
     # print(cluster_df.reset_index())
-    print(cluster_df.reset_index()[['id', 'cluster']])
+    # print(cluster_df.reset_index()[['id', 'cluster']])
 
     '''距離による順位づけ
     '''
@@ -116,7 +116,7 @@ def main():
     buyer_preference_df = buyer_df[clustering_use_cols]
     agent_preference_df = agent_df[clustering_use_cols]
 
-    # print(buyer_preference_df)
+    print(buyer_preference_df)
 
     # アンケートカラム
     preference_cols = [
@@ -131,13 +131,19 @@ def main():
         'preference9'
     ]
 
+    id_col = [
+        'id'
+    ]
+
     buyer_id_list = []
     agent_id_list = []
     distance_list = []
     for b_index, b_row in buyer_preference_df.iterrows():
         b = b_row[preference_cols]
+        buyer_id = b_row[id_col]
         for a_index, a_row in agent_preference_df.iterrows():
             a = a_row[preference_cols]
+            agent_id = a_row[id_col]
             tmp_df = pd.concat([b, a], axis=1)
             # distance列の作成
             tmp_df.columns = ['', 'distance']
@@ -150,8 +156,8 @@ def main():
             # 平方根: sqrt(((b-a)^2).sum())
             tmp_diff_square_sum_sqrt_df = tmp_diff_square_sum_df ** 0.5
             # buyer_id, agent_id, distance_listリスト作成
-            buyer_id_list.append(b_index + 1)
-            agent_id_list.append(a_index + 1)
+            buyer_id_list.append(buyer_id[0])
+            agent_id_list.append(agent_id[0])
             distance_list.append(tmp_diff_square_sum_sqrt_df['distance'])
     buyer_id_df = pd.DataFrame(buyer_id_list)
     agent_id_df = pd.DataFrame(agent_id_list)
