@@ -18,6 +18,24 @@ from sklearn.cluster import KMeans
 AGENT_FILE_PATH = 'tables/agents.csv'
 BUYER_FILE_PATH = 'tables/buyers.csv'
 
+import mysql.connector
+
+# コネクションの作成
+conn = mysql.connector.connect(
+    host='localhost',
+    port='4306',
+    user='root',
+    password='',
+    database='app_development'
+)
+
+conn.ping(reconnect=True)
+
+cur = conn.cursor()
+cur.execute('SELECT * FROM buyers')
+sql_result_a = cur.fetchall()
+
+print(sql_result_a)
 
 def read_csv():
     agent_df = pd.read_csv(AGENT_FILE_PATH)
@@ -116,7 +134,7 @@ def main():
     buyer_preference_df = buyer_df[clustering_use_cols]
     agent_preference_df = agent_df[clustering_use_cols]
 
-    print(buyer_preference_df)
+    # print(buyer_preference_df)
 
     # アンケートカラム
     preference_cols = [
