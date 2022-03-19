@@ -7,7 +7,10 @@ from flask import Response
 from flask_cors import CORS
 import pandas as pd
 import random
-import sqlalchemy as sa
+
+import pymysql
+import sqlalchemy as sqa
+
 import os
 
 random.seed(0)
@@ -20,27 +23,50 @@ BUYER_FILE_PATH = 'tables/buyers.csv'
 
 import mysql.connector
 
-# コネクションの作成
-conn = mysql.connector.connect(
-    host='localhost',
-    port='4306',
-    user='root',
-    password='',
-    database='app_development'
-)
 
-conn.ping(reconnect=True)
+def conn():
+    # コネクションの作成
+    con = mysql.connector.connect(
+        host='localhost',
+        port='4306',
+        user='root',
+        password='',
+        database='app_development'
+    )
+    con.ping(reconnect=True)
+    return con
 
-cur = conn.cursor()
-cur.execute('SELECT * FROM buyers')
-sql_result_a = cur.fetchall()
 
-print(sql_result_a)
+def select_buyers_table(con):
+    cur = con.cursor()
+    cur.execute('SELECT * FROM buyers;')
+    buyers = cur.fetchall()
+    buyer_df = pd.DataFrame(buyers)
 
-def read_csv():
-    agent_df = pd.read_csv(AGENT_FILE_PATH)
-    buyer_df = pd.read_csv(BUYER_FILE_PATH)
-    return agent_df, buyer_df
+    cur.execute('show columns from buyers;')
+    buyers_cols = cur.fetchall()
+    cols = pd.DataFrame(buyers_cols)[[0]].T.iloc[0].to_list()
+    buyer_df.columns = cols
+    return buyer_df
+
+
+def select_agents_table(con):
+    cur = con.cursor()
+    cur.execute('SELECT * FROM agents;')
+    agents = cur.fetchall()
+    agent_df = pd.DataFrame(agents)
+
+    cur.execute('show columns from agents;')
+    agents_cols = cur.fetchall()
+    cols = pd.DataFrame(agents_cols)[[0]].T.iloc[0].to_list()
+    agent_df.columns = cols
+    return agent_df
+
+
+# def read_csv():
+#     agent_df = pd.read_csv(AGENT_FILE_PATH)
+#     buyer_df = pd.read_csv(BUYER_FILE_PATH)
+#     return agent_df, buyer_df
 
 
 def make_distances_table():
@@ -57,8 +83,12 @@ def make_distances_table():
     return distances_df
 
 
+
 def main():
-    agent_df, buyer_df = read_csv()
+    con = conn()
+    buyer_df = select_buyers_table(con)
+    agent_df = select_agents_table(con)
+    # agent_df, buyer_df = read_csv()
 
     '''tmp_id列の作成
     '''
@@ -128,7 +158,6 @@ def main():
 
     # distance列を0で初期化
     df['distance'] = 0
-    df[distances_table_cols].to_csv('output/distance_table_df.csv', index=False)
 
     # buyer, agentのpreferenceの回答の差の二乗の和の平方根
     buyer_preference_df = buyer_df[clustering_use_cols]
@@ -185,9 +214,24 @@ def main():
     distance_table_df = pd.concat([distance_table_df, distance_df], axis=1)
     distance_table_df.columns = ['buyer_id', 'agent_id', 'distance']
 
-    distance_table_df[['created_at', 'updated_at']] = ''
+    distance_table_df[['id', 'created_at', 'updated_at']] = ''
 
     distance_table_df.to_csv('output/distances_table_df.csv', index=False)
+
+
+
+    con = 'mysql+mysqlconnector://root:@localhost:4306/app_development?charset=utf8'
+    # engine = sqa.create_engine(url, echo=True)
+    # distance_table_df.to_sql("distances", url, index=None)
+
+    # distance_table_df.to_sql('distances', con, if_exists='replace', index=False)
+
+    # upsert_keep -> 基本なにもしない(?) バグの可能性もあるので今後みていく．
+    distance_table_df.to_sql('distances', con, if_exist='upsert_keep', index=False)
+
+    # upsert_overwrite -> 存在するものはUpdateして存在しないものはInsert．意図通り
+    distance_table_df.to_sql('distances', con, if_exist='upsert_overwrite', index=False)
+
 
 
 if __name__ == '__main__':
