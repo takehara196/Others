@@ -9,7 +9,7 @@ import pandas as pd
 import random
 
 import pymysql
-import sqlalchemy as sqa
+import sqlalchemy as sa
 
 import os
 
@@ -81,7 +81,6 @@ def make_distances_table():
     distances_df = pd.DataFrame(columns=distances_table_cols)
 
     return distances_df
-
 
 
 def main():
@@ -185,10 +184,14 @@ def main():
     buyer_id_list = []
     agent_id_list = []
     distance_list = []
+    id_list = []
+    id_ = 0
     for b_index, b_row in buyer_preference_df.iterrows():
         b = b_row[preference_cols]
         buyer_id = b_row[id_col]
         for a_index, a_row in agent_preference_df.iterrows():
+            id_ += 1
+            id_list.append(id_)
             a = a_row[preference_cols]
             agent_id = a_row[id_col]
             tmp_df = pd.concat([b, a], axis=1)
@@ -209,29 +212,40 @@ def main():
     buyer_id_df = pd.DataFrame(buyer_id_list)
     agent_id_df = pd.DataFrame(agent_id_list)
     distance_df = pd.DataFrame(distance_list)
+    id_df = pd.DataFrame(id_list)
+    print(id_df)
 
     distance_table_df = pd.concat([buyer_id_df, agent_id_df], axis=1)
     distance_table_df = pd.concat([distance_table_df, distance_df], axis=1)
     distance_table_df.columns = ['buyer_id', 'agent_id', 'distance']
 
-    distance_table_df[['id', 'created_at', 'updated_at']] = ''
+    distance_table_df[['created_at', 'updated_at']] = ''
+    distance_table_df[['id']] = id_df
 
     distance_table_df.to_csv('output/distances_table_df.csv', index=False)
 
-
-
-    con = 'mysql+mysqlconnector://root:@localhost:4306/app_development?charset=utf8'
+    engine = sa.create_engine('mysql+mysqlconnector://root:@localhost:4306/app_development?charset=utf8')
+    # engine = 'mysql+mysqlconnector://root:@localhost:4306/app_development?charset=utf8'
     # engine = sqa.create_engine(url, echo=True)
     # distance_table_df.to_sql("distances", url, index=None)
 
-    # distance_table_df.to_sql('distances', con, if_exists='replace', index=False)
+    distance_table_df.to_sql(
+        name='distances',
+        con=engine,
+        if_exists='replace',
+        index=False
+        # dtype={'id': 'INTEGER PRIMARY KEY AUTOINCREMENT'}
+    )
 
-    # upsert_keep -> 基本なにもしない(?) バグの可能性もあるので今後みていく．
-    distance_table_df.to_sql('distances', con, if_exist='upsert_keep', index=False)
+    with engine.connect() as con:
+        con.execute('alter table distances modify id int not null;')
+        con.execute('alter table distances add primary key (id);')
 
-    # upsert_overwrite -> 存在するものはUpdateして存在しないものはInsert．意図通り
-    distance_table_df.to_sql('distances', con, if_exist='upsert_overwrite', index=False)
-
+    # # upsert_keep -> 基本なにもしない(?) バグの可能性もあるので今後みていく．
+    # distance_table_df.to_sql('distances', con, if_exist='upsert_keep', index=False)
+    #
+    # # upsert_overwrite -> 存在するものはUpdateして存在しないものはInsert．意図通り
+    # distance_table_df.to_sql('distances', con, if_exist='upsert_overwrite', index=False)
 
 
 if __name__ == '__main__':
