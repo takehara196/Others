@@ -228,7 +228,7 @@ def main():
     distance_table_df.to_csv('output/distances_table_df.csv', index=False)
 
     sql = ('''
-            INSERT INTO distances (buyer_id, agent_id, distance, created_at, updated_at) 
+            INSERT INTO distances (id, buyer_id, agent_id, distance, created_at, updated_at) 
             VALUES 	(%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
             ON DUPLICATE KEY UPDATE agent_id = VALUES(agent_id), buyer_id = VALUES(buyer_id);
             ''')
@@ -236,8 +236,7 @@ def main():
     for index, data in distance_table_df.iterrows():
         print(list(data))
         cursor = con.cursor()
-        # df_x = df[df_class['クラス'] == i+1]
-        param = (index, list(data)[0], list(data)[1], list(data)[2])
+        param = (list(data)[5], list(data)[0], list(data)[1], list(data)[2])
         cursor.execute(sql, param)
         con.commit()
         cursor.close()
