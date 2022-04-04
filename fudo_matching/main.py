@@ -124,13 +124,22 @@ def main():
         'preference9'
     ]
 
+    # agent, buyerカラム
+    agent_buyer_id_cols = [
+        'agent_id',
+        'buyer_id'
+    ]
+    agent_buyer_id_df = df[agent_buyer_id_cols].reset_index(drop=True)
+    print(agent_buyer_id_df)
+
+
     '''クラスタリング
     '''
     # idカラムをindexに指定
     tmp_df = df[clustering_use_cols].set_index('id')
     # データを4クラスに分割、乱数固定
     model_kmeans = KMeans(n_clusters=4, random_state=0)
-    # 学習、フィッティング
+    # 学習, フィッティング <- preferenceカラムのみ使用する(agent_id, buyer_idを除いたカラムを使用する)
     model_kmeans.fit(tmp_df.values)
     # 学習済みデータの重心点
     # print(model_kmeans.cluster_centers_)
@@ -140,8 +149,15 @@ def main():
     cluster = model_kmeans.predict(tmp_df.values)
     cluster_df = tmp_df.copy()
     cluster_df['cluster'] = cluster
-    # print(cluster_df.reset_index())
+    print(cluster_df.reset_index())
     # print(cluster_df.reset_index()[['id', 'cluster']])
+
+    # agent_id列, buyer_id列とcluster列を結合
+    cluster = cluster_df[['cluster']].reset_index(drop=True)
+    agent_buyer_cluster_df = pd.concat([agent_buyer_id_df, cluster], axis=1)
+    print(agent_buyer_cluster_df)
+
+
 
     '''距離による順位づけ
     '''
@@ -216,7 +232,7 @@ def main():
     agent_id_df = pd.DataFrame(agent_id_list)
     distance_df = pd.DataFrame(distance_list)
     id_df = pd.DataFrame(id_list)
-    print(id_df)
+    # print(id_df)
 
     distance_table_df = pd.concat([buyer_id_df, agent_id_df], axis=1)
     distance_table_df = pd.concat([distance_table_df, distance_df], axis=1)
@@ -234,12 +250,15 @@ def main():
             ''')
 
     for index, data in distance_table_df.iterrows():
-        print(list(data))
+        # print(list(data))
         cursor = con.cursor()
         param = (list(data)[5], list(data)[0], list(data)[1], list(data)[2])
-        cursor.execute(sql, param)
-        con.commit()
-        cursor.close()
+        # print(param)
+        # cursor.execute(sql, param)
+        # con.commit()
+        # cursor.close()
+
+
 
 
 # engine = sa.create_engine('mysql+mysqlconnector://root:@localhost:4306/app_development?charset=utf8')
