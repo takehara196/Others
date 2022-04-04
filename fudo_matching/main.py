@@ -5,6 +5,7 @@ from unittest import result
 from flask import Flask, request, jsonify, render_template
 from flask import Response
 from flask_cors import CORS
+import numpy as np
 import pandas as pd
 import random
 
@@ -95,24 +96,17 @@ def main():
     '''tmp_id列の作成
     '''
     # テーブル名からagent, buyerを判別する
-    agent_file_name = os.path.splitext(os.path.basename(AGENT_FILE_PATH))[0]
-    buyer_file_name = os.path.splitext(os.path.basename(BUYER_FILE_PATH))[0]
-    # tmp_id列の作成
-    # agent_df['agent_id'] = agent_file_name + '_' + agent_df['id'].astype('str')
-    # buyer_df['buyer_id'] = buyer_file_name + '_' + buyer_df['id'].astype('str')
     agent_df['agent_id'] = agent_df['id'].astype('str')
     buyer_df['buyer_id'] = buyer_df['id'].astype('str')
 
     # 結合
     df = pd.concat([buyer_df, agent_df], axis=0, join='outer')
-    # df.to_csv('output/df.csv')
 
-    # アンケートカラムのみ抽出
+    '''クラスタリング
+    '''
+    # クラスタリングに使用するカラム
     clustering_use_cols = [
         'id',
-        # 'tmp_id',
-        # 'agent_id',
-        # 'buyer_id',
         'preference1',
         'preference2',
         'preference3',
@@ -124,14 +118,13 @@ def main():
         'preference9'
     ]
 
-    # agent, buyerカラム
+    # agent, buyerカラム: agents, buyersテーブルのcluster列更新の為に使用
     agent_buyer_id_cols = [
         'agent_id',
         'buyer_id'
     ]
+    # agent, buyerカラムのデータフレーム
     agent_buyer_id_df = df[agent_buyer_id_cols].reset_index(drop=True)
-    print(agent_buyer_id_df)
-
 
     '''クラスタリング
     '''
@@ -149,15 +142,57 @@ def main():
     cluster = model_kmeans.predict(tmp_df.values)
     cluster_df = tmp_df.copy()
     cluster_df['cluster'] = cluster
-    print(cluster_df.reset_index())
-    # print(cluster_df.reset_index()[['id', 'cluster']])
+
+    # buyer, agentのpreferenceの回答の差の二乗の和の平方根
+    buyer_preference_df = buyer_df[clustering_use_cols]
+    agent_preference_df = agent_df[clustering_use_cols]
 
     # agent_id列, buyer_id列とcluster列を結合
     cluster = cluster_df[['cluster']].reset_index(drop=True)
     agent_buyer_cluster_df = pd.concat([agent_buyer_id_df, cluster], axis=1)
-    print(agent_buyer_cluster_df)
 
+    buyer_id_df = agent_buyer_cluster_df.dropna(subset=['buyer_id']).drop('agent_id', axis=1).reset_index(drop=True)
+    buyer_id_df.columns = ['id', 'cluster']
+    agent_id_df = agent_buyer_cluster_df.dropna(subset=['agent_id']).drop('buyer_id', axis=1).reset_index(drop=True)
+    agent_id_df.columns = ['id', 'cluster']
+    buyer_id_df['id'] = buyer_id_df['id'].astype(np.int64)
+    print(buyer_id_df)
 
+    # buyers
+    sql = ('''
+            INSERT INTO buyers
+                (id, cluster, created_at, updated_at) 
+            VALUES
+                (%s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON DUPLICATE KEY UPDATE
+                cluster = VALUES(`cluster`);
+            ''')
+
+    for index, data in buyer_id_df.iterrows():
+        cursor = con.cursor()
+        param = (list(data)[0], list(data)[1])
+        print(param)
+        cursor.execute(sql, param)
+        con.commit()
+        cursor.close()
+
+    # agents
+    sql = ('''
+            INSERT INTO agents
+                (id, cluster, created_at, updated_at) 
+            VALUES
+                (%s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON DUPLICATE KEY UPDATE
+                cluster = VALUES(`cluster`);
+            ''')
+
+    for index, data in agent_id_df.iterrows():
+        cursor = con.cursor()
+        param = (list(data)[0], list(data)[1])
+        print(param)
+        cursor.execute(sql, param)
+        con.commit()
+        cursor.close()
 
     '''距離による順位づけ
     '''
@@ -180,8 +215,6 @@ def main():
     # buyer, agentのpreferenceの回答の差の二乗の和の平方根
     buyer_preference_df = buyer_df[clustering_use_cols]
     agent_preference_df = agent_df[clustering_use_cols]
-
-    # print(buyer_preference_df)
 
     # アンケートカラム
     preference_cols = [
@@ -257,8 +290,6 @@ def main():
         # cursor.execute(sql, param)
         # con.commit()
         # cursor.close()
-
-
 
 
 # engine = sa.create_engine('mysql+mysqlconnector://root:@localhost:4306/app_development?charset=utf8')
