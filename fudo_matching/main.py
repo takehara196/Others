@@ -174,7 +174,7 @@ def main():
         print(param)
         cursor.execute(sql, param)
         con.commit()
-        cursor.close()
+        # cursor.close()
 
     # agents
     sql = ('''
@@ -192,7 +192,7 @@ def main():
         print(param)
         cursor.execute(sql, param)
         con.commit()
-        cursor.close()
+        # cursor.close()
 
     '''距離による順位づけ
     '''
@@ -279,42 +279,15 @@ def main():
     sql = ('''
             INSERT INTO distances (id, buyer_id, agent_id, distance, created_at, updated_at) 
             VALUES 	(%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
-            ON DUPLICATE KEY UPDATE agent_id = VALUES(agent_id), buyer_id = VALUES(buyer_id);
+            ON DUPLICATE KEY UPDATE distance = VALUES(distance);
             ''')
 
     for index, data in distance_table_df.iterrows():
-        # print(list(data))
         cursor = con.cursor()
         param = (list(data)[5], list(data)[0], list(data)[1], list(data)[2])
-        # print(param)
-        # cursor.execute(sql, param)
-        # con.commit()
+        cursor.execute(sql, param)
+        con.commit()
         # cursor.close()
-
-
-# engine = sa.create_engine('mysql+mysqlconnector://root:@localhost:4306/app_development?charset=utf8')
-# # engine = 'mysql+mysqlconnector://root:@localhost:4306/app_development?charset=utf8'
-# # engine = sqa.create_engine(url, echo=True)
-# # distance_table_df.to_sql("distances", url, index=None)
-#
-# distance_table_df.to_sql(
-#     name='distances',
-#     con=engine,
-#     if_exists='replace',
-#     index=False
-#     # dtype={'id': 'INTEGER PRIMARY KEY AUTOINCREMENT'}
-# )
-#
-# with engine.connect() as con:
-#     con.execute('alter table distances modify id int not null;')
-#     con.execute('alter table distances add primary key (id);')
-
-
-# # upsert_keep -> 基本なにもしない(?) バグの可能性もあるので今後みていく．
-# distance_table_df.to_sql('distances', con, if_exist='upsert_keep', index=False)
-#
-# # upsert_overwrite -> 存在するものはUpdateして存在しないものはInsert．意図通り
-# distance_table_df.to_sql('distances', con, if_exist='upsert_overwrite', index=False)
 
 
 if __name__ == '__main__':
