@@ -27,6 +27,17 @@ BUYER_FILE_PATH = 'tables/buyers.csv'
 
 import mysql.connector
 
+import datetime
+from logger import set_logger
+
+# パスやロガーの設定
+INPUT_PATH = "input"
+OUTPUT_PATH = "output"
+LOG_PATH = f"log/{datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d')}"
+today_str = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d_%H:%M:%S')
+os.makedirs(LOG_PATH, exist_ok=True)
+logger = set_logger(__name__, today_str, LOG_PATH)
+
 
 def conn():
     # コネクションの作成
@@ -42,6 +53,7 @@ def conn():
 
 
 def select_buyers_table(con):
+    logger.info("*** select_buyers_table ***")
     cur = con.cursor()
     cur.execute('SELECT * FROM buyers;')
     buyers = cur.fetchall()
@@ -55,6 +67,7 @@ def select_buyers_table(con):
 
 
 def select_agents_table(con):
+    logger.info("*** select_agents_table ***")
     cur = con.cursor()
     cur.execute('SELECT * FROM agents;')
     agents = cur.fetchall()
@@ -67,13 +80,8 @@ def select_agents_table(con):
     return agent_df
 
 
-# def read_csv():
-#     agent_df = pd.read_csv(AGENT_FILE_PATH)
-#     buyer_df = pd.read_csv(BUYER_FILE_PATH)
-#     return agent_df, buyer_df
-
-
 def make_distances_table():
+    logger.info("*** make_distances_table ***")
     distances_table_cols = [
         'id',
         'buyer_id',
@@ -159,7 +167,7 @@ def main():
     print(buyer_id_df)
 
     # buyers
-    sql = ('''
+    sql1 = ('''
             INSERT INTO buyers
                 (id, cluster, created_at, updated_at) 
             VALUES
@@ -172,12 +180,12 @@ def main():
         cursor = con.cursor()
         param = (list(data)[0], list(data)[1])
         print(param)
-        cursor.execute(sql, param)
+        cursor.execute(sql1, param)
         con.commit()
         cursor.close()
 
     # agents
-    sql = ('''
+    sql2 = ('''
             INSERT INTO agents
                 (id, cluster, created_at, updated_at) 
             VALUES
@@ -190,7 +198,7 @@ def main():
         cursor = con.cursor()
         param = (list(data)[0], list(data)[1])
         print(param)
-        cursor.execute(sql, param)
+        cursor.execute(sql2, param)
         con.commit()
         # cursor.close()
 
@@ -276,7 +284,7 @@ def main():
 
     distance_table_df.to_csv('output/distances_table_df.csv', index=False)
 
-    sql = ('''
+    sql3 = ('''
             INSERT INTO distances
                 (id, buyer_id, agent_id, distance, created_at, updated_at) 
             VALUES
@@ -289,9 +297,9 @@ def main():
     for index, data in distance_table_df.iterrows():
         cursor = con.cursor()
         param = (list(data)[5], list(data)[0], list(data)[1], list(data)[2])
-        cursor.execute(sql, param)
+        cursor.execute(sql3, param)
         con.commit()
-        # cursor.close()
+        cursor.close()
 
 
 if __name__ == '__main__':
