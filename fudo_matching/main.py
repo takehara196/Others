@@ -59,7 +59,7 @@ def select_buyers_table(con):
     buyers = cur.fetchall()
     buyer_df = pd.DataFrame(buyers)
 
-    cur.execute('show columns from buyers;')
+    cur.execute('SHOW COLUMNS FROM buyers;')
     buyers_cols = cur.fetchall()
     cols = pd.DataFrame(buyers_cols)[[0]].T.iloc[0].to_list()
     buyer_df.columns = cols
@@ -73,7 +73,7 @@ def select_agents_table(con):
     agents = cur.fetchall()
     agent_df = pd.DataFrame(agents)
 
-    cur.execute('show columns from agents;')
+    cur.execute('SHOW COLUMNS FROM agents;')
     agents_cols = cur.fetchall()
     cols = pd.DataFrame(agents_cols)[[0]].T.iloc[0].to_list()
     agent_df.columns = cols
