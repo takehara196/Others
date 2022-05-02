@@ -8,6 +8,9 @@ from flask_cors import CORS
 import numpy as np
 import pandas as pd
 import random
+import datetime
+import send2trash
+import shutil
 
 import pymysql
 import sqlalchemy as sa
@@ -95,7 +98,31 @@ def make_distances_table():
     return distances_df
 
 
+def delete_log():
+    try:
+        """
+        古いlogディレクトリの削除
+        (90日以上経過したlogディレクトリを削除)
+        """
+        # 現在の日付を取得
+        now = datetime.date.today()
+        path = './log'
+        files = os.listdir(path)
+        files_dir = [f for f in files if os.path.isdir(os.path.join(path, f))]
+        for dir in files_dir:
+            mtime = datetime.date.fromtimestamp(int(os.path.getmtime(f'{path}/{dir}')))
+            # 90日以上経過している場合は削除
+            if (now - mtime).days >= 90:
+                # ディレクトリを中身ごと削除
+                shutil.rmtree(f'{path}/{dir}')
+                logger.info(f"*** delete log directory {str(dir)} ***")
+    except:
+        pass
+    return
+
+
 def main():
+    delete_log()
     con = conn()
     buyer_df = select_buyers_table(con)
     agent_df = select_agents_table(con)

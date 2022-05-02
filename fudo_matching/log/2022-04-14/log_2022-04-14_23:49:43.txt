@@ -1,3 +1,0 @@
-2022-04-14 23:49:44,027 - __main__ - INFO -*** select_buyers_table ***
-2022-04-14 23:49:44,347 - __main__ - INFO -*** select_agents_table ***
-2022-04-14 23:49:44,577 - __main__ - INFO -*** make_distances_table ***
